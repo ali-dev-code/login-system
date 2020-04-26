@@ -1,4 +1,6 @@
-<?php include 'includes/header.php'; ?>
+<?php include 'includes/header.php';
+
+?>
 
 <?php include 'includes/nav.php'; ?>
 
@@ -35,7 +37,14 @@
 									<div class="form-group">
 										<input type="password" name="password" id="login-
 										password" tabindex="2" class="form-control" placeholder="Password" required>
-									</div>
+                  </div>
+                  <!-- <div class="form-group lead">
+                <label for="userRole">I'm a :</label>
+
+                <input type="radio" name="userRole" value="Brand" class="custom-radio" required>&nbsp;Brand
+                <input type="radio" name="userRole" value="Influencer" class="custom-radio" required>&nbsp;Influencer
+
+              </div> -->
 									<div class="form-group text-center">
 										<input type="checkbox" tabindex="3" class="" name="remember" id="remember">
 										<label for="remember"> Remember Me</label>
@@ -52,7 +61,7 @@
 											<div class="col-lg-12">
 												<div class="text-center">
 													<a href="recover.php" tabindex="5" class="forgot-password">Forgot Password?</a>
-													<a class="btn btn-primary btn-block py-5" href="#" role="button"> hello</a>
+
 												</div>
 											</div>
 										</div>

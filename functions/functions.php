@@ -21,7 +21,7 @@ function set_message($message)
     if (!empty($message)) {
       $_SESSION['message'] = <<<DELIMITER
 
-  <div class="alert alert-danger alert-dismissible " role="alert">
+  <div class="alert alert-success alert-dismissible " role="alert">
        <strong> WARNING:!</strong> $message
        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
        <span aria-hidden="true">&times;</span>
@@ -85,35 +85,6 @@ function username_exists($username)
 }
 
 
-//for sendin email
-function send_email($email, $subject, $msg)
-{
-    $mail = new PHPMailer;
-    $mail->isSMTP();                                      // Set mailer to use SMTP
-     $mail->Host = 'smtp.gmail.com';  // Specify main and backup SMTP servers
-
-    $mail->Username = 'wealwayscareforyou114@gmail.com';                   // SMTP username
-    $mail->Password = 'aliyahoo';                         // SMTP password
-    $mail->SMTPAuth = true;                               // Enable SMTP authentication
-    $mail->Port = 587;
-    $mail->SMTPSecure = 'tls';                            // Enable TLS encryption, `ssl` also accepted
-    $mail->isHTML(true);
-    $mail->setFrom('wealwayscareforyou114@gmail.com', 'CareForYou');
-    $mail->addAddress($email);     // Add a recipient
-
-    $mail->Subject = $subject;
-    $mail->Body    ="<h2 class='bg-success'> {$msg} </h2>"  ;
-    $mail->AltBody = $msg;
-
-    return $mail->send();
-
-
-
-    //  return mail($email, $subject, $msg, $headers);
-}
-
-
-
 
 // for form security
 function token_generator()
@@ -136,6 +107,7 @@ function validate_user_registration()
         $email                  = clean($_POST['email']);
         $password               = clean($_POST['password']);
         $confirm_password       = clean($_POST['confirm_password']);
+        $userRole       = $_POST['userRole'];
 
         if (strlen($first_name)<$min) {
             $errors[]  = "your first name cannot be less than {$min} characters";
@@ -159,15 +131,18 @@ function validate_user_registration()
         if ($password !== $confirm_password) {
             $errors[] = "your passsword fields do not match";
         }
+        if (empty($userRole)) {
+          $errors[] = "please select a user role";
+      }
 
         if (!empty($errors)) {
             foreach ($errors as $error) {
                 echo validation_errors($error);
             }
         } else {
-            if (register_user($first_name, $last_name, $username, $email, $password)) {
-                set_message(" Please check your email or spam folder for activation ");
-                redirect("index.php");
+            if (register_user($first_name, $last_name, $username, $email, $password,$userRole)) {
+                set_message(" you are successfully registered ");
+                redirect("login.php");
             } else {
                 set_message("<p class='bg-danger text-center'> Something went wrong </p>");
                 redirect("index.php");
@@ -177,13 +152,14 @@ function validate_user_registration()
 } // function
 
 
-function register_user($first_name, $last_name, $username, $email, $password)
+function register_user($first_name, $last_name, $username, $email, $password,$userRole)
 {
     $first_name = escape($first_name);
     $last_name = escape($last_name);
     $username = escape($username);
     $email = escape($email);
     $password = escape($password);
+    $userRole   = escape($userRole);;
 
     if (email_exists($email)) {
         return false;
@@ -192,58 +168,17 @@ function register_user($first_name, $last_name, $username, $email, $password)
     } else {
         $password = md5($password);
         $validation_code = md5($username . microtime());
-        $sql ="INSERT INTO users(first_name,last_name,username,email,password,validation_code,active) ";
-        $sql.=" VALUES('$first_name','$last_name','$username','$email','$password','$validation_code',0)";
+        $sql ="INSERT INTO users(first_name,last_name,username,email,password, role, validation_code,active) ";
+        $sql.=" VALUES('$first_name','$last_name','$username','$email','$password','$userRole','$validation_code',1)";
         $result = query($sql);
         confirm($result); // to see query work
 
-        // for sending mail
 
-        $subject = "Activate your account";
-
-        $msg = " Please click the link below to activate your Account  <br />
-
-        <a href=\"http://localhost/login/activate.php?email=$email&code=$validation_code\"> LINKE IS HERE!</a>
-          ";
-        // $headers = "From: noreply@yourwebsite.com";
-
-        send_email($email, $subject, $msg);
         return true;
     }
 }
 
 /****************activation functions***************************/
-
-function activate_user()
-{
-    if ($_SERVER['REQUEST_METHOD'] == "GET") {
-        if (isset($_GET['email'])) {
-            $email = clean($_GET['email']);
-            $validation_code = clean($_GET['code']); // becz hm ne servr ki req hi get kr di hai is
-
-            $sql = "SELECT id FROM users WHERE email = '".escape($_GET['email'])."' AND validation_code = '".escape($_GET['code'])."' ";
-            $result = query($sql);
-            confirm($result);
-            if (row_count($result)== 1) {
-                $sql2 = "UPDATE users SET active = 1, validation_code = 0 WHERE email = '".escape($email)."' AND validation_code = '".escape($validation_code)."' ";
-
-                $result2 = query($sql2);
-                confirm($result2);
-
-                set_message("<p class='bg-success'>
-       please login!!! your acoount is activated
-       </p>");
-                redirect("login.php");
-            } else {
-                set_message("<p class='bg-danger'>
-      Sorry your account could not be activated.
-      </p>");
-                redirect("login.php");
-            }
-        }
-    }
-} //functions
-
 
 
 /*/////////////////////// validate user login //////////////*/
@@ -258,6 +193,7 @@ function validate_user_login()
     if ($_SERVER['REQUEST_METHOD'] == "POST") {
         $email                  = clean($_POST['email']);
         $password               = clean($_POST['password']);
+        // $userRole               = clean($_POST['userRole']);
         $remember               = isset($_POST['remember']);
 
         if (empty($email)) {
@@ -266,6 +202,9 @@ function validate_user_login()
         if (empty($password)) {
             $error[] = "password field cants be empty";
         }
+        if (empty($$userRole)) {
+          $error[] = "user role can not be empty";
+      }
 
 
         if (!empty($errors)) {
@@ -274,7 +213,7 @@ function validate_user_login()
             }
         } else {
             if (login_user($email, $password, $remember)) {
-                redirect("admin.php");
+                // redirect("admin.php");
             } else {
                 echo validation_errors("your credentials are not correct");
             }
@@ -290,13 +229,14 @@ function validate_user_login()
 
   function login_user($email, $password, $remember)
   {
-      $sql = "SELECT password, id FROM users WHERE email = '".escape($email)."' AND active = 1";
+      $sql = "SELECT * FROM users WHERE email = '".escape($email)."' AND active = 1";
       $result = query($sql);
 
       if (row_count($result) == 1) {
           $row = fetch_array($result); // for getting password data from db
           $db_password = $row['password'];
-
+          $role = $row['role'];
+          $name = $row['first_name'];
 
           if (md5($password) == $db_password) {
 
@@ -307,10 +247,15 @@ function validate_user_login()
               }
 
               $_SESSION['email']= $email;
+              $_SESSION['name']= $name;
+
+              if ($role == "Brand") {
+                redirect("login2.php");
+              }elseif ($role == "Influencer") {
+                redirect("login3.php");
+              }
 
 
-
-              return true;
           } else {
               return false;
           }
